@@ -34,8 +34,9 @@ cd ~/workspace/dot-omp && ./install.sh --dry-run && ./install.sh
 omp config get modelRoles; omp config get edit.mode        # verify
 ```
 
-Windows: `.\install.ps1 -DryRun`, then `.\install.ps1` (copies `models.yml`; `-Link` needs
-Developer Mode). **`install.ps1` has not been run yet**; it was written on the Linux side.
+Windows, from **pwsh 7** (Windows PowerShell 5.1 strips the quotes out of the `modelRoles` JSON
+on its way to `omp.exe`): `pwsh -File .\install.ps1 -DryRun`, then `pwsh -File .\install.ps1`
+(copies `models.yml`; `-Link` needs Developer Mode).
 
 The machine file is picked as `<short hostname>-<os>`, lowercased (`bladerunner14-linux`,
 `bladerunner14-windows`). Override with `--machine NAME` or `-Machine NAME`. A new machine starts

@@ -1,10 +1,14 @@
-# install.ps1: Windows twin of install.sh. UNTESTED as of 2026-09-30 (written on the
-# Linux side); run with -DryRun first.
+# install.ps1: Windows twin of install.sh. Needs pwsh 7 (see the #Requires line).
+# Run with -DryRun first.
 #
 #   .\install.ps1                  # copy models.yml, apply settings.conf + machines\<host>-windows.conf
 #   .\install.ps1 -Link            # symlink models.yml instead (needs Developer Mode or admin)
 #   .\install.ps1 -Machine NAME    # use machines\NAME.conf
 #   .\install.ps1 -DryRun
+#Requires -Version 7
+# Windows PowerShell 5.1 strips the inner quotes from the modelRoles JSON when it hands
+# the value to omp.exe, so the roles arrive as {default:...} and fail to parse. pwsh 7
+# passes the string intact (checked 2026-09-30 on 7.6.6). Run: pwsh -File .\install.ps1
 param([switch]$Link, [switch]$DryRun, [string]$Machine = "")
 $ErrorActionPreference = "Stop"
 
