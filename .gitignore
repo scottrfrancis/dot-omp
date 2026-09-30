@@ -1,0 +1,27 @@
+# omp runtime state, in case this repo is ever used as the agent dir itself
+*.db
+*.db-shm
+*.db-wal
+sessions/
+terminal-sessions/
+logs/
+run/
+natives/
+extensions/
+last-changelog-version
+settings.json.bak
+config.yml
+
+# per-machine backups written by install.sh
+*.bak.*
+
+# secrets
+auth*.json
+.env
+.env.*
+*.pem
+*.key
+
+# OS cruft
+.DS_Store
+Thumbs.db

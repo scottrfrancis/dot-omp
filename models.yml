@@ -1,0 +1,45 @@
+# dot-omp shared providers: symlinked (or copied) to ~/.omp/agent/models.yml by install.sh.
+#
+# Every provider lives here, machine-agnostic, like dot-opencode's opencode.jsonc: a
+# provider a given machine can't reach is simply never used. WHICH model a machine uses
+# is per-machine and lives in machines/<host>-<os>.conf (modelRoles), not here.
+#
+# Tiers (same three as dot-opencode):
+#   1. local  - on this machine: llama.cpp (Linux, below), LM Studio (Windows; omp's
+#               built-in lm-studio provider auto-discovers localhost:1234, no entry needed)
+#   2. remote - dev-ai, the single-model inference box (below)
+#   3. cloud  - anthropic, built in; log in with /login in the TUI (OAuth, Claude Pro/Max)
+providers:
+  # Remote tier. An explicit openai-completions provider pointed at the workhorse:latest
+  # ALIAS. Clients never name a concrete model: dev-ai re-points the alias when its
+  # primary changes (okf-knowledge infra/ai-stack.md, infra/model-upgrade-playbook.md),
+  # currently qwen3.8:27b-tools at num_ctx 131072.
+  #
+  # Deliberately NOT named "ollama": an explicit "ollama" entry replaces omp's built-in
+  # ollama discovery, and in omp 17.2.9 that silently discovered zero models. This
+  # entry lists its one model explicitly, so it needs no discovery and no
+  # OLLAMA_BASE_URL environment variable.
+  dev-ai:
+    baseUrl: http://dev-ai.local:11434/v1
+    auth: none
+    api: openai-completions
+    models:
+      - id: workhorse:latest
+        name: Workhorse (dev-ai primary)
+        contextWindow: 131072     # dev-ai's num_ctx for the alias
+        maxTokens: 16384
+        input: [text]
+
+  # Local tier on the Linux laptop (BladeRunner14): llama.cpp llama-server, started on
+  # demand with `systemctl --user start llama-qwen36`. Qwen3.6-35B-A3B MTP on the
+  # RTX 4070 8 GB, about 46 t/s decode on Balanced. See REBUILD-NOTES §4 (L1 to L6).
+  llama.cpp:
+    baseUrl: http://127.0.0.1:8080/v1
+    auth: none
+    api: openai-completions
+    models:
+      - id: qwen3.6-35b-a3b-mtp   # must match llama-server --alias
+        name: Qwen3.6 35B-A3B MTP (local)
+        contextWindow: 131072     # match llama-server --ctx-size
+        maxTokens: 16384
+        input: [text]
