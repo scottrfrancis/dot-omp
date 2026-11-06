@@ -43,3 +43,26 @@ providers:
         contextWindow: 131072     # match llama-server --ctx-size
         maxTokens: 16384
         input: [text]
+
+  # Local tier on Studio (Mac Studio M5 Max, 128 GB): oMLX, an MLX server, on loopback 8080.
+  #   omlx serve --model-dir /Volumes/workspace/models/mlx --port 8080 --memory-guard-gb 100 \
+  #     --paged-ssd-cache-dir /Volumes/workspace/models/omlx-cache --headless
+  # oMLX names each model after its folder, so the ids below are folder names. It serves
+  # several models at once and evicts by LRU. Plan and results: okf-knowledge
+  # infra/runbooks/studio-local-ai.md. Same port as the llama.cpp entry; each machine only
+  # runs one of them.
+  omlx:
+    baseUrl: http://127.0.0.1:8080/v1
+    auth: none
+    api: openai-completions
+    models:
+      - id: Qwen3.6-35B-A3B-4bit
+        name: Qwen3.6 35B-A3B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: gpt-oss-20b-MXFP4-Q8
+        name: gpt-oss 20B (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
