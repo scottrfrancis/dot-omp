@@ -66,3 +66,8 @@ providers:
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
+      - id: Qwen3.6-35B-A3B-oQ4e-mtp
+        name: Qwen3.6 35B-A3B oQ4e with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
