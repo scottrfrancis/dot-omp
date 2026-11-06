@@ -48,7 +48,7 @@ by copying the closest file in `machines/`.
 |---|---|---|---|
 | local | `llama.cpp` | Linux laptop, `127.0.0.1:8080` | On demand: `systemctl --user start llama-qwen36`. Qwen3.6-35B-A3B MTP, about 46 t/s |
 | local | `lm-studio` (built in) | Windows, `localhost:1234` | Auto-discovered; no entry needed. `qwen/qwen2.5-coder-7b` @ 32K |
-| remote | `dev-ai` | `dev-ai.local:11434/v1` | The `workhorse:latest` alias. Never name a concrete dev-ai model |
+| remote | `dev-ai` | `dev-ai.local:8000/v1` (vLLM) | The `workhorse` served name. Never name a concrete dev-ai model |
 | cloud | `anthropic` (built in) | Claude | `/login` in the TUI (OAuth). Not an API key |
 
 ## Gotchas
@@ -64,11 +64,14 @@ by copying the closest file in `machines/`.
    `OLLAMA_BASE_URL` user env var. `dev-ai` here is an explicit `openai-completions` provider
    with its one model listed, so it needs neither discovery nor the env var. Verified from Linux,
    2026-09-30: `omp -p --no-tools --model dev-ai/workhorse:latest` answered in 2.3 s.
-4. **Clients name `workhorse:latest`, never a concrete model** (okf-knowledge
+4. **Clients name `workhorse`, never a concrete model** (okf-knowledge
    `infra/ai-stack.md`). `qwen3.6:35b-a3b` disappeared from dev-ai, which broke both OpenCode's
-   and omp's defaults; the alias prevents a repeat.
-5. **`contextWindow` must match the server.** llama.cpp: `--ctx-size` (131072). dev-ai: the
-   alias's `num_ctx` (131072).
+   and omp's defaults; the served name prevents a repeat. Since the 2026-10-20 cutover the
+   primary is on vLLM at `:8000`. dev-ai's Ollama at `:11434` is CPU-only but still answers for
+   `workhorse:latest`, so a client pointed there works, slowly, at a 32K window. If omp feels
+   CPU-bound, check `baseUrl` first.
+5. **`contextWindow` must match the server.** llama.cpp: `--ctx-size` (131072). dev-ai: vLLM's
+   `--max-model-len` (131072, reported by `/v1/models` as `max_model_len`).
 6. **Claude Code's auto mode will not launch omp with `--auto-approve`**, even with approval;
    run such commands yourself (`! omp ...` inside Claude Code).
 7. omp's agent tried `python` before `python3` on Ubuntu: `sudo apt install python-is-python3`.
