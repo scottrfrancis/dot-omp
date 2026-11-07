@@ -71,3 +71,45 @@ providers:
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
+      # Phase 2b and the Phase 3 bake-off (studio-local-ai.md). Listed ahead of their
+      # downloads; a model oMLX has not discovered just fails if chosen.
+      - id: Qwen3.8-27B-MLX-8bit
+        name: Qwen3.8 27B 8-bit, dense (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.5-122B-A10B-4bit
+        name: Qwen3.5 122B-A10B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: gpt-oss-120b-MXFP4-Q8
+        name: gpt-oss 120B (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3-Coder-Next-4bit
+        name: Qwen3 Coder Next 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-MLX-4bit
+        name: Nemotron 3.5 Super-VL 120B-A12B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Laguna-S-2.1-NVFP4-mlx
+        name: Laguna S 2.1 NVFP4 (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Mistral-Small-4-119B-2603-4bit
+        name: Mistral Small 4 119B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-Flash-Next-oQ4e-mtp
+        name: Qwen3.8 Flash-Next oQ4e with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
