@@ -135,3 +135,19 @@ providers:
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
+
+  # The same oMLX server, with gpt-oss marked as a reasoning model. omp sends reasoning_effort only
+  # for a model marked `reasoning: true`, and then sends its default level, high; oMLX passes it into
+  # gpt-oss's chat template, which otherwise defaults to medium. Kept apart from `omlx` so round 1's
+  # medium-effort results stay comparable (okf-knowledge studio-local-ai.md, round 2).
+  omlx-high:
+    baseUrl: http://127.0.0.1:8080/v1
+    apiKey: OMLX_API_KEY
+    api: openai-completions
+    models:
+      - id: gpt-oss-120b-MXFP4-Q8
+        name: gpt-oss 120B, reasoning high (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+        reasoning: true
