@@ -10,23 +10,26 @@
 #   2. remote - dev-ai, the single-model inference box (below)
 #   3. cloud  - anthropic, built in; log in with /login in the TUI (OAuth, Claude Pro/Max)
 providers:
-  # Remote tier. An explicit openai-completions provider pointed at the workhorse:latest
-  # ALIAS. Clients never name a concrete model: dev-ai re-points the alias when its
-  # primary changes (okf-knowledge infra/ai-stack.md, infra/model-upgrade-playbook.md),
-  # currently qwen3.8:27b-tools at num_ctx 131072.
-  #
-  # Deliberately NOT named "ollama": an explicit "ollama" entry replaces omp's built-in
-  # ollama discovery, and in omp 17.2.9 that silently discovered zero models. This
-  # entry lists its one model explicitly, so it needs no discovery and no
-  # OLLAMA_BASE_URL environment variable.
+  # Remote tier: dev-ai's vLLM, the production primary since 2026-10-20 (okf-knowledge
+  # infra/ai-stack.md, infra/model-upgrade-playbook.md). vLLM serves one model under two
+  # names: `workhorse`, the pointer dev-ai moves when its primary changes, and
+  # `qwen27-nvfp4`, pinned to nvidia/Qwen3.8-27B-NVFP4 for evals that must not drift.
+  # 131072 context, MTP(3), tool parser qwen3_coder, reasoning parser qwen3.
+  # Ollama on :11434 has been CPU-only since the cutover: a client left there gets a slow
+  # copy at a 32K window and no error.
   dev-ai:
-    baseUrl: http://dev-ai.local:11434/v1
+    baseUrl: http://dev-ai.local:8000/v1
     auth: none
     api: openai-completions
     models:
-      - id: workhorse:latest
-        name: Workhorse (dev-ai primary)
-        contextWindow: 131072     # dev-ai's num_ctx for the alias
+      - id: workhorse
+        name: Workhorse (dev-ai primary, vLLM)
+        contextWindow: 131072     # vLLM --max-model-len
+        maxTokens: 16384
+        input: [text]
+      - id: qwen27-nvfp4
+        name: Qwen3.8 27B NVFP4 (dev-ai vLLM, pinned)
+        contextWindow: 131072
         maxTokens: 16384
         input: [text]
 
@@ -124,11 +127,6 @@ providers:
         input: [text]
       - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4
         name: Nemotron 3.5 Super-VL NVFP4 with MTP (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: Qwen3.8-27B-NVFP4
-        name: Qwen3.8 27B NVFP4, Unsloth (oMLX)
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
