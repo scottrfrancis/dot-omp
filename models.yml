@@ -44,16 +44,19 @@ providers:
         maxTokens: 16384
         input: [text]
 
-  # Local tier on Studio (Mac Studio M5 Max, 128 GB): oMLX, an MLX server, on loopback 8080.
-  #   omlx serve --model-dir /Volumes/workspace/models/mlx --port 8080 --memory-guard-gb 100 \
-  #     --paged-ssd-cache-dir /Volumes/workspace/models/omlx-cache --headless
+  # Local tier on Studio (Mac Studio M5 Max, 128 GB): oMLX, an MLX server, on 8080.
+  #   OMLX_API_KEY=... omlx serve --model-dir /Volumes/workspace/models/mlx --host 0.0.0.0 \
+  #     --port 8080 --memory-guard-gb 100 --paged-ssd-cache-dir /Volumes/workspace/models/omlx-cache --headless
+  # It listens on the LAN, so it requires its API key on every request, loopback included.
+  # The key is in Studio's login Keychain; omp reads it from the OMLX_API_KEY variable:
+  #   export OMLX_API_KEY="$(security find-generic-password -s omlx-api-key -w)"
   # oMLX names each model after its folder, so the ids below are folder names. It serves
   # several models at once and evicts by LRU. Plan and results: okf-knowledge
   # infra/runbooks/studio-local-ai.md. Same port as the llama.cpp entry; each machine only
   # runs one of them.
   omlx:
     baseUrl: http://127.0.0.1:8080/v1
-    auth: none
+    apiKey: OMLX_API_KEY
     api: openai-completions
     models:
       - id: Qwen3.6-35B-A3B-4bit
@@ -110,6 +113,27 @@ providers:
         input: [text]
       - id: Qwen3.8-Flash-Next-oQ4e-mtp
         name: Qwen3.8 Flash-Next oQ4e with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      # Round 2 (studio-local-ai.md): speculative decoding, and Qwen3.8-27B at two quants.
+      - id: Qwen3.8-Flash-Next-oQ2.5e-fp16-mtp
+        name: Qwen3.8 Flash-Next oQ2.5e with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4
+        name: Nemotron 3.5 Super-VL NVFP4 with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-27B-NVFP4
+        name: Qwen3.8 27B NVFP4, Unsloth (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-27B-oQ8e-mtp
+        name: Qwen3.8 27B oQ8e with MTP (oMLX)
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
