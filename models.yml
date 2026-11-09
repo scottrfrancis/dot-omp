@@ -10,23 +10,27 @@
 #   2. remote - dev-ai, the single-model inference box (below)
 #   3. cloud  - anthropic, built in; log in with /login in the TUI (OAuth, Claude Pro/Max)
 providers:
-  # Remote tier. An explicit openai-completions provider pointed at the workhorse:latest
-  # ALIAS. Clients never name a concrete model: dev-ai re-points the alias when its
-  # primary changes (okf-knowledge infra/ai-stack.md, infra/model-upgrade-playbook.md),
-  # currently qwen3.8:27b-tools at num_ctx 131072.
+  # Remote tier. An explicit openai-completions provider pointed at dev-ai's vLLM server
+  # (:8000), which serves the primary under the name `workhorse`. Clients never name a
+  # concrete model: dev-ai swaps the weights behind that served name when its primary
+  # changes (okf-knowledge infra/ai-stack.md, infra/model-upgrade-playbook.md), currently
+  # nvidia/Qwen3.8-27B-NVFP4 with max_model_len 131072.
+  #
+  # Not dev-ai's Ollama (:11434). Ollama there has been CPU-only since the 2026-10-20 vLLM
+  # cutover and still answers for workhorse:latest, so a client left on :11434 works but
+  # runs on CPU at a 32K window.
   #
   # Deliberately NOT named "ollama": an explicit "ollama" entry replaces omp's built-in
   # ollama discovery, and in omp 17.2.9 that silently discovered zero models. This
-  # entry lists its one model explicitly, so it needs no discovery and no
-  # OLLAMA_BASE_URL environment variable.
+  # entry lists its one model explicitly, so it needs no discovery.
   dev-ai:
-    baseUrl: http://dev-ai.local:11434/v1
+    baseUrl: http://dev-ai.local:8000/v1
     auth: none
     api: openai-completions
     models:
-      - id: workhorse:latest
+      - id: workhorse
         name: Workhorse (dev-ai primary)
-        contextWindow: 131072     # dev-ai's num_ctx for the alias
+        contextWindow: 131072     # vLLM --max-model-len on dev-ai
         maxTokens: 16384
         input: [text]
 
