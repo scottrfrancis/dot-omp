@@ -48,7 +48,8 @@ notlogged() { ! grep -q -- "$1" "$LOG"; }
 echo "# server already up: no start, no stop, args passed through"
 reset; touch "$STUB_STATE/active"
 "$WRAP" -p "hello world" >/dev/null 2>&1
-check "passes args to omp"       logged "omp -p hello world"
+check "passes args to omp"       logged "\-p hello world"
+check "binds the local model"    logged "omp --model llama.cpp/qwen3.6-35b-a3b-mtp -p hello world"
 check "does not start"           notlogged "systemctl --user start"
 check "does not stop"            notlogged "systemctl --user stop"
 
@@ -57,9 +58,21 @@ reset; echo 2 > "$STUB_STATE/polls-until-healthy"
 "$WRAP" -p hi >/dev/null 2>&1; rc=$?
 check "starts the unit"          logged "systemctl --user start llama-qwen36"
 check "polls health before omp"  bash -c "grep -n 'curl.*health' '$LOG' | tail -1 | cut -d: -f1 | xargs -I{} test {} -lt \$(grep -n '^omp' '$LOG' | cut -d: -f1)"
-check "runs omp"                 logged "omp -p hi"
+check "runs omp"                 logged "\-p hi"
 check "stops the unit after"     logged "systemctl --user stop llama-qwen36"
 check "exit code 0"              test "$rc" -eq 0
+
+echo "# an explicit --model wins; OMP_LOCAL_MODEL overrides the default"
+reset; touch "$STUB_STATE/active"
+"$WRAP" --model dev-ai/workhorse -p hi >/dev/null 2>&1
+check "explicit --model kept"    logged "omp --model dev-ai/workhorse -p hi"
+check "no second --model"        bash -c "[ \"\$(grep -o -- '--model' '$LOG' | wc -l)\" -eq 1 ]"
+reset; touch "$STUB_STATE/active"
+"$WRAP" --model=foo/bar -p hi >/dev/null 2>&1
+check "--model=value kept"       notlogged "llama.cpp/"
+reset; touch "$STUB_STATE/active"
+OMP_LOCAL_MODEL=llama.cpp/other "$WRAP" -p hi >/dev/null 2>&1
+check "env override used"        logged "omp --model llama.cpp/other -p hi"
 
 echo "# OMP_LOCAL_KEEP=1 leaves the server running"
 reset; export OMP_LOCAL_KEEP=1
