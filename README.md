@@ -105,7 +105,10 @@ omp-local status          # exit 0 if the server answers
 OMP_LOCAL_KEEP=1 omp-local   # leave the server running after omp exits
 ```
 
-A server that was already running when `omp-local` started is left alone afterwards. The
+Because the machine's default role is dev-ai, which is unreachable offline, the wrapper passes
+`--model llama.cpp/qwen3.6-35b-a3b-mtp` unless the arguments already carry a `--model`
+(`OMP_LOCAL_MODEL` changes the default). A server that was already running when `omp-local`
+started is left alone afterwards. The
 manual equivalents are `systemctl --user start|stop llama-qwen36` and
 `curl -sf http://127.0.0.1:8080/health`; the unit's log is `journalctl --user -u llama-qwen36`.
 The wrapper is a shell script rather than an omp extension because omp discovers providers

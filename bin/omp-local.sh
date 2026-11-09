@@ -15,12 +15,18 @@
 #   OMP_LOCAL_URL      server base URL              (default http://127.0.0.1:8080)
 #   OMP_LOCAL_TIMEOUT  seconds to wait for /health  (default 120; a warm start takes ~10 s)
 #   OMP_LOCAL_KEEP     1 = leave the server running after omp exits
+#   OMP_LOCAL_MODEL    model passed as --model unless the args already carry one
+#                      (default llama.cpp/qwen3.6-35b-a3b-mtp, the id in models.yml)
+#
+# The machine's default role is dev-ai, which is unreachable on a plane, so this wrapper
+# binds omp to the local model it just started. An explicit --model on the command line wins.
 set -euo pipefail
 
 UNIT="${OMP_LOCAL_UNIT:-llama-qwen36}"
 URL="${OMP_LOCAL_URL:-http://127.0.0.1:8080}"
 TIMEOUT="${OMP_LOCAL_TIMEOUT:-120}"
 SLEEP="${OMP_LOCAL_SLEEP:-1}"   # poll interval; tests set 0
+MODEL="${OMP_LOCAL_MODEL:-llama.cpp/qwen3.6-35b-a3b-mtp}"
 
 log() { printf 'omp-local: %s\n' "$*" >&2; }
 healthy() { curl -sf --max-time 2 "$URL/health" >/dev/null 2>&1; }
@@ -72,8 +78,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
+has_model=0
+for arg in "$@"; do
+  case "$arg" in --model|--model=*) has_model=1 ;; esac
+done
 set +e
-omp "$@"
+if [ "$has_model" = 1 ]; then omp "$@"; else omp --model "$MODEL" "$@"; fi
 rc=$?
 set -e
 exit "$rc"
