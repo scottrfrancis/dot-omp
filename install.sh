@@ -6,6 +6,9 @@
 #   ./install.sh --machine NAME  # use machines/NAME.conf instead of the detected one
 #   ./install.sh --dry-run       # show what would happen, change nothing
 #
+# Also links bin/omp-local.sh to ~/.local/bin/omp-local (Linux/mac): the wrapper that starts
+# the on-demand llama-server before omp and stops it afterwards.
+#
 # models.yml is linked: omp reads it and does not write it. config.yml is omp's own
 # file (`omp config set` rewrites it), so settings are APPLIED through omp rather than
 # linked, which keeps this checkout clean. Re-run after pulling; it is idempotent.
@@ -83,4 +86,12 @@ for ext in "$REPO"/extensions/*.ts; do
   echo "  extension: $(basename "$ext")"
 done
 
-echo "Done. Check with: omp config get modelRoles; omp config get tools.approvalMode; ls -l $AGENT_DIR/AGENTS.md"
+# omp-local wrapper (Linux/mac only; the local tier on Windows is LM Studio, always on).
+if [ "$os" != windows ]; then
+  BIN_DIR="${OMP_LOCAL_BIN:-$HOME/.local/bin}"
+  run mkdir -p "$BIN_DIR"
+  run ln -sfn "$REPO/bin/omp-local.sh" "$BIN_DIR/omp-local"
+  echo "  omp-local: linked to $BIN_DIR/omp-local"
+fi
+
+echo "Done. Check with: omp config get modelRoles; omp config get tools.approvalMode; ls -l $AGENT_DIR/AGENTS.md; omp-local status"
