@@ -7,7 +7,8 @@ terminal-sessions/
 logs/
 run/
 natives/
-extensions/
+extensions/*
+!extensions/side-effect-gate.ts
 last-changelog-version
 settings.json.bak
 config.yml
