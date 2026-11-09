@@ -85,9 +85,10 @@ printer. The model's reasoning was fine; the harness had no gate. Three things c
    and when a cause looks found, name the confirming test and ask before exploring further.
 
 Also from that session: `compaction.handoffSaveToDisk true`, so the summaries a long session
-produces can be read afterwards, and on the Linux machine file the `plan` role goes to Claude
-through the OAuth login while `default` stays local. Windows is not wired yet: `install.ps1`
-does not link `AGENTS.md` or the extension.
+produces can be read afterwards. Every role on the Linux machine stays local or on dev-ai;
+omp is the offline tier here, and escalation to Claude happens by handing a Claude Code
+session the omp transcript, outside omp. Windows is not wired yet: `install.ps1` does not
+link `AGENTS.md` or the extension.
 ## Local tier on Linux: `omp-local`
 
 The `llama-qwen36` user service is stopped by default and nothing starts it at login. That is
