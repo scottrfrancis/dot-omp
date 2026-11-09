@@ -18,6 +18,8 @@ omp is replacing OpenCode. Everything here was learned the hard way on the Windo
 | `agent/AGENTS.md` | Standing rules for every session: consult okf-knowledge first, consent before side effects, check for the standard tool before writing one, findings file on disk | Linked to `~/.omp/agent/AGENTS.md` |
 | `extensions/side-effect-gate.ts` | Asks before print jobs, queue changes, service control, package changes and root writes, in every approval mode | Linked into `~/.omp/agent/extensions/` |
 | `tests/test-install.sh` | Checks `install.sh` against a stubbed `omp` and a throwaway agent dir | `tests/test-install.sh` |
+| `bin/omp-local.sh` | Wrapper that starts the on-demand llama-server, runs omp, stops it after | Linked to `~/.local/bin/omp-local` (Linux/mac) |
+| `tests/test-omp-local.sh` | Checks the wrapper against stubbed `systemctl`, `curl` and `omp` | `tests/test-omp-local.sh` |
 | `install.sh` / `install.ps1` | Does the above; idempotent | Run after cloning and after each pull |
 
 `~/.omp/agent/config.yml` is **not** in the repo. omp rewrites it itself (`omp config set`, the
@@ -49,7 +51,7 @@ by copying the closest file in `machines/`.
 
 | Tier | Provider | Where | Notes |
 |---|---|---|---|
-| local | `llama.cpp` | Linux laptop, `127.0.0.1:8080` | On demand: `systemctl --user start llama-qwen36`. Qwen3.6-35B-A3B MTP, about 46 t/s |
+| local | `llama.cpp` | Linux laptop, `127.0.0.1:8080` | On demand: `omp-local` starts it (see below). Qwen3.6-35B-A3B MTP, about 46 t/s |
 | local | `lm-studio` (built in) | Windows, `localhost:1234` | Auto-discovered; no entry needed. `qwen/qwen2.5-coder-7b` @ 32K |
 | remote | `dev-ai` | `dev-ai.local:11434/v1` | The `workhorse:latest` alias. Never name a concrete dev-ai model |
 | cloud | `anthropic` (built in) | Claude | `/login` in the TUI (OAuth). Not an API key |
@@ -86,6 +88,28 @@ Also from that session: `compaction.handoffSaveToDisk true`, so the summaries a 
 produces can be read afterwards, and on the Linux machine file the `plan` role goes to Claude
 through the OAuth login while `default` stays local. Windows is not wired yet: `install.ps1`
 does not link `AGENTS.md` or the extension.
+## Local tier on Linux: `omp-local`
+
+The `llama-qwen36` user service is stopped by default and nothing starts it at login. That is
+deliberate: running, it holds the dGPU, about 6.7 GB of VRAM and 23 GB of RAM, and drains the
+battery. Plain `omp` with the default `llama.cpp/...` role therefore fails until the server is up.
+`omp-local` is the switch:
+
+```bash
+omp-local                 # start the server if needed, run omp, stop the server when omp exits
+omp-local -p "pong?"      # any omp arguments pass straight through
+omp-local up              # start and wait for /health (about 10 s warm), then leave it running
+omp-local down            # stop it
+omp-local status          # exit 0 if the server answers
+OMP_LOCAL_KEEP=1 omp-local   # leave the server running after omp exits
+```
+
+A server that was already running when `omp-local` started is left alone afterwards. The
+manual equivalents are `systemctl --user start|stop llama-qwen36` and
+`curl -sf http://127.0.0.1:8080/health`; the unit's log is `journalctl --user -u llama-qwen36`.
+The wrapper is a shell script rather than an omp extension because omp discovers providers
+before any extension could start a server, and because stopping the server after omp exits
+needs a process outside omp.
 
 ## Gotchas
 
