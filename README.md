@@ -15,6 +15,9 @@ omp is replacing OpenCode. Everything here was learned the hard way on the Windo
 | `models.yml` | Every provider: `dev-ai` (remote tier) and `llama.cpp` (local tier on Linux) | Symlinked (or copied) to `~/.omp/agent/models.yml` |
 | `settings.conf` | Shared settings, such as `edit.mode replace` and the theme | Applied with `omp config set` |
 | `machines/<host>-<os>.conf` | Per-machine settings, mainly `modelRoles` | Applied after `settings.conf` |
+| `agent/AGENTS.md` | Standing rules for every session: consult okf-knowledge first, consent before side effects, check for the standard tool before writing one, findings file on disk | Linked to `~/.omp/agent/AGENTS.md` |
+| `extensions/side-effect-gate.ts` | Asks before print jobs, queue changes, service control, package changes and root writes, in every approval mode | Linked into `~/.omp/agent/extensions/` |
+| `tests/test-install.sh` | Checks `install.sh` against a stubbed `omp` and a throwaway agent dir | `tests/test-install.sh` |
 | `install.sh` / `install.ps1` | Does the above; idempotent | Run after cloning and after each pull |
 
 `~/.omp/agent/config.yml` is **not** in the repo. omp rewrites it itself (`omp config set`, the
@@ -51,6 +54,39 @@ by copying the closest file in `machines/`.
 | remote | `dev-ai` | `dev-ai.local:11434/v1` | The `workhorse:latest` alias. Never name a concrete dev-ai model |
 | cloud | `anthropic` (built in) | Claude | `/login` in the TUI (OAuth). Not an API key |
 
+## Standing rules and the side-effect gate
+
+On 2026-11-08 an omp session on BladeRunner14, pointed at dev-ai and asked to fix a printer,
+ran for two hours in the default `yolo` approval mode with no rules file loaded (it started in
+`/tmp`, and there was no user-level `AGENTS.md`). It found the real bug by reading CUPS source,
+then submitted nine print jobs as diagnostics, changed the queue's device URI without asking
+and ran `sudo` 245 times, none of it prompted. About fifty pages of garbage came out of the
+printer. The model's reasoning was fine; the harness had no gate. Three things changed here.
+
+1. **`tools.approvalMode write`** in `settings.conf`. Reads run free; writes, edits and shell
+   commands ask. In print mode (`omp -p`) a command that needs approval is refused with a
+   message, so scripted runs such as the smoke test pass `--auto-approve` or
+   `--approval-mode yolo` explicitly, and so should a session that is editing code inside a
+   git repo where every change is reversible.
+2. **`extensions/side-effect-gate.ts`**, a `tool_call` hook. It inspects each `bash` command
+   segment for the verbs that cost the most in that session (`lp`/`lpr`, `lpadmin` and friends,
+   `systemctl` on system units, package installs and removals, `sudo` with anything but a
+   read-only command) and asks once per command. Without a UI it blocks and tells the model to
+   use the `ask` tool. It fires before approval, so it holds in `yolo` too. Verified against
+   dev-ai in print mode: `lp -d nowhere /etc/hostname` came back blocked with the reason text,
+   `ls /etc/cups` ran.
+3. **`agent/AGENTS.md`**, linked to `~/.omp/agent/AGENTS.md`, so it reaches sessions started
+   outside any project. It carries the consent rules the gate enforces, the consult-before-acting
+   rule from the ops knowledge base, and three habits for investigations: check for the standard
+   tool before writing a client (that session spent fifteen minutes on a hand-written IPP encoder
+   while `ipptool` was installed), keep a findings file on disk because compaction drops detail,
+   and when a cause looks found, name the confirming test and ask before exploring further.
+
+Also from that session: `compaction.handoffSaveToDisk true`, so the summaries a long session
+produces can be read afterwards, and on the Linux machine file the `plan` role goes to Claude
+through the OAuth login while `default` stays local. Windows is not wired yet: `install.ps1`
+does not link `AGENTS.md` or the extension.
+
 ## Gotchas
 
 1. **`edit.mode replace` is essential** with Qwen-family models. The default `hashline` syntax had
@@ -75,6 +111,20 @@ by copying the closest file in `machines/`.
    Tests need `python3-pytest` on a fresh install.
 8. On an 8 GB GPU, size local context so real VRAM stays under about 7.5 GB; LM Studio's
    estimate runs low (gemma-3-4b was 1.8 GB over).
+
+9. **omp's approval default is `yolo`.** A fresh install runs every tool call unprompted. The
+   `write` mode and the side-effect gate above exist because of the 2026-11-08 printer session.
+10. **A session started in `~` or `/tmp` loads no project `AGENTS.md`.** Only the user-level
+    file at `~/.omp/agent/AGENTS.md` reaches it, which is why this repo ships one.
+11. **Cache reads show as zero against dev-ai's vLLM.** vLLM 0.30 returns
+    `prompt_tokens_details: null`, so omp cannot see prefix-cache hits and its token display
+    says nothing was cached. The server's own counters (`:8000/metrics`,
+    `vllm:prefix_cache_hits_total` over `vllm:prefix_cache_queries_total`) showed a 91.5 % hit
+    rate on 2026-11-08. Read omp's zero as a reporting gap, not as re-prefilling 77 K tokens a
+    call.
+12. **No JS runtime on BladeRunner14 outside omp's bundled Bun**, so the extension has no unit
+    tests; `tests/test-install.sh` checks the wiring and the live check above is the functional
+    test.
 
 ## Smoke test
 

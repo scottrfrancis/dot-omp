@@ -64,4 +64,23 @@ else
   echo "  NOTE: no machines/$MACHINE.conf; shared settings only. Copy one of machines/*.conf to start."
 fi
 
-echo "Done. Check with: omp config get modelRoles; omp config get edit.mode"
+# AGENTS.md: the standing rules every session gets, project or not. Linked like models.yml,
+# with a one-time backup of any real file already there.
+dst="$AGENT_DIR/AGENTS.md"
+if [ -e "$dst" ] && [ ! -L "$dst" ]; then
+  if cmp -s "$dst" "$REPO/agent/AGENTS.md"; then run rm -f "$dst"
+  else run mv "$dst" "$dst.bak.$(date +%Y%m%d-%H%M%S)"; echo "  backed up existing AGENTS.md"; fi
+fi
+run ln -sfn "$REPO/agent/AGENTS.md" "$dst"
+echo "  AGENTS.md: linked"
+
+# Extensions: each file under extensions/ is linked into the agent's extensions dir, where
+# omp discovers it at startup. Other tools (herdr) keep their own files beside ours.
+run mkdir -p "$AGENT_DIR/extensions"
+for ext in "$REPO"/extensions/*.ts; do
+  [ -e "$ext" ] || continue
+  run ln -sfn "$ext" "$AGENT_DIR/extensions/$(basename "$ext")"
+  echo "  extension: $(basename "$ext")"
+done
+
+echo "Done. Check with: omp config get modelRoles; omp config get tools.approvalMode; ls -l $AGENT_DIR/AGENTS.md"
