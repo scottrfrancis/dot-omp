@@ -11,10 +11,11 @@
 #   3. cloud  - anthropic, built in; log in with /login in the TUI (OAuth, Claude Pro/Max)
 providers:
   # Remote tier. An explicit openai-completions provider pointed at dev-ai's vLLM server
-  # (:8000), which serves the primary under the name `workhorse`. Clients never name a
-  # concrete model: dev-ai swaps the weights behind that served name when its primary
-  # changes (okf-knowledge infra/ai-stack.md, infra/model-upgrade-playbook.md), currently
-  # nvidia/Qwen3.8-27B-NVFP4 with max_model_len 131072.
+  # (:8000), which serves one model under two names: `workhorse`, the pointer dev-ai moves
+  # when its primary changes (okf-knowledge infra/ai-stack.md, infra/model-upgrade-playbook.md),
+  # and `qwen27-nvfp4`, pinned to nvidia/Qwen3.8-27B-NVFP4 for evals that must not drift.
+  # 131072 context, MTP(3), tool parser qwen3_coder, reasoning parser qwen3. vLLM requires a
+  # bearer key since 2026-11-10 (okf infra/runbooks/vllm-api-key.md).
   #
   # Not dev-ai's Ollama (:11434). Ollama there has been CPU-only since the 2026-10-20 vLLM
   # cutover and still answers for workhorse:latest, so a client left on :11434 works but
@@ -22,15 +23,20 @@ providers:
   #
   # Deliberately NOT named "ollama": an explicit "ollama" entry replaces omp's built-in
   # ollama discovery, and in omp 17.2.9 that silently discovered zero models. This
-  # entry lists its one model explicitly, so it needs no discovery.
+  # entry lists its models explicitly, so it needs no discovery.
   dev-ai:
     baseUrl: http://dev-ai.local:8000/v1
-    auth: none
+    apiKey: VLLM_API_KEY      # env var name; set from ~/.config/llm/vllm.env
     api: openai-completions
     models:
       - id: workhorse
-        name: Workhorse (dev-ai primary)
-        contextWindow: 131072     # vLLM --max-model-len on dev-ai
+        name: Workhorse (dev-ai primary, vLLM)
+        contextWindow: 131072     # vLLM --max-model-len
+        maxTokens: 16384
+        input: [text]
+      - id: qwen27-nvfp4
+        name: Qwen3.8 27B NVFP4 (dev-ai vLLM, pinned)
+        contextWindow: 131072
         maxTokens: 16384
         input: [text]
 
@@ -47,3 +53,109 @@ providers:
         contextWindow: 131072     # match llama-server --ctx-size
         maxTokens: 16384
         input: [text]
+
+  # Local tier on Studio (Mac Studio M5 Max, 128 GB): oMLX, an MLX server, on 8080.
+  #   OMLX_API_KEY=... omlx serve --model-dir /Volumes/workspace/models/mlx --host 0.0.0.0 \
+  #     --port 8080 --memory-guard-gb 100 --paged-ssd-cache-dir /Volumes/workspace/models/omlx-cache --headless
+  # It listens on the LAN, so it requires its API key on every request, loopback included.
+  # The key is in Studio's login Keychain; omp reads it from the OMLX_API_KEY variable:
+  #   export OMLX_API_KEY="$(security find-generic-password -s omlx-api-key -w)"
+  # oMLX names each model after its folder, so the ids below are folder names. It serves
+  # several models at once and evicts by LRU. Plan and results: okf-knowledge
+  # infra/runbooks/studio-local-ai.md. Same port as the llama.cpp entry; each machine only
+  # runs one of them.
+  omlx:
+    baseUrl: http://127.0.0.1:8080/v1
+    apiKey: OMLX_API_KEY
+    api: openai-completions
+    models:
+      - id: Qwen3.6-35B-A3B-4bit
+        name: Qwen3.6 35B-A3B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: gpt-oss-20b-MXFP4-Q8
+        name: gpt-oss 20B (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.6-35B-A3B-oQ4e-mtp
+        name: Qwen3.6 35B-A3B oQ4e with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      # Phase 2b and the Phase 3 bake-off (studio-local-ai.md). Listed ahead of their
+      # downloads; a model oMLX has not discovered just fails if chosen.
+      - id: Qwen3.8-27B-MLX-8bit
+        name: Qwen3.8 27B 8-bit, dense (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.5-122B-A10B-4bit
+        name: Qwen3.5 122B-A10B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: gpt-oss-120b-MXFP4-Q8
+        name: gpt-oss 120B (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3-Coder-Next-4bit
+        name: Qwen3 Coder Next 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-MLX-4bit
+        name: Nemotron 3.5 Super-VL 120B-A12B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Laguna-S-2.1-NVFP4-mlx
+        name: Laguna S 2.1 NVFP4 (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Mistral-Small-4-119B-2603-4bit
+        name: Mistral Small 4 119B 4-bit (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-Flash-Next-oQ4e-mtp
+        name: Qwen3.8 Flash-Next oQ4e with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      # Round 2 (studio-local-ai.md): speculative decoding, and Qwen3.8-27B at two quants.
+      - id: Qwen3.8-Flash-Next-oQ2.5e-fp16-mtp
+        name: Qwen3.8 Flash-Next oQ2.5e with MTP (oMLX)
+        # 160k: under oMLX's 100 GiB guard a 190k prompt fits and 230k is aborted (2026-11-09).
+        contextWindow: 163840
+        maxTokens: 16384
+        input: [text]
+      - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4
+        name: Nemotron 3.5 Super-VL NVFP4 with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-27B-oQ8e-mtp
+        name: Qwen3.8 27B oQ8e with MTP (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+
+  # The same oMLX server, with gpt-oss marked as a reasoning model. omp sends reasoning_effort only
+  # for a model marked `reasoning: true`, and then sends its default level, high; oMLX passes it into
+  # gpt-oss's chat template, which otherwise defaults to medium. Kept apart from `omlx` so round 1's
+  # medium-effort results stay comparable (okf-knowledge studio-local-ai.md, round 2).
+  omlx-high:
+    baseUrl: http://127.0.0.1:8080/v1
+    apiKey: OMLX_API_KEY
+    api: openai-completions
+    models:
+      - id: gpt-oss-120b-MXFP4-Q8
+        name: gpt-oss 120B, reasoning high (oMLX)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
+        reasoning: true
