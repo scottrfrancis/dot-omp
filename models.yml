@@ -19,7 +19,7 @@ providers:
   # copy at a 32K window and no error.
   dev-ai:
     baseUrl: http://dev-ai.local:8000/v1
-    auth: none
+    apiKey: VLLM_API_KEY      # env var name; set from ~/.config/llm/vllm.env (okf infra/runbooks/vllm-api-key.md)
     api: openai-completions
     models:
       - id: workhorse
