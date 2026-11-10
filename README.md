@@ -12,7 +12,7 @@ omp is replacing OpenCode. Everything here was learned the hard way on the Windo
 
 | Path | What it is | How it reaches omp |
 |---|---|---|
-| `models.yml` | Every provider: `dev-ai` (remote tier) and `llama.cpp` (local tier on Linux) | Symlinked (or copied) to `~/.omp/agent/models.yml` |
+| `models.yml` | Every provider: `dev-ai` (remote tier), `llama.cpp` (local tier on Linux) and `omlx` (Studio) | Symlinked (or copied) to `~/.omp/agent/models.yml` |
 | `settings.conf` | Shared settings, such as `edit.mode replace` and the theme | Applied with `omp config set` |
 | `machines/<host>-<os>.conf` | Per-machine settings, mainly `modelRoles` | Applied after `settings.conf` |
 | `agent/AGENTS.md` | Standing rules for every session: consult okf-knowledge first, consent before side effects, check for the standard tool before writing one, findings file on disk | Linked to `~/.omp/agent/AGENTS.md` |
@@ -53,7 +53,7 @@ by copying the closest file in `machines/`.
 |---|---|---|---|
 | local | `llama.cpp` | Linux laptop, `127.0.0.1:8080` | On demand: `omp-local` starts it (see below). Qwen3.6-35B-A3B MTP, about 46 t/s |
 | local | `lm-studio` (built in) | Windows, `localhost:1234` | Auto-discovered; no entry needed. `qwen/qwen2.5-coder-7b` @ 32K |
-| remote | `dev-ai` | `dev-ai.local:11434/v1` | The `workhorse:latest` alias. Never name a concrete dev-ai model |
+| remote | `dev-ai` | `dev-ai.local:8000/v1` (vLLM) | `workhorse`, the pointer dev-ai moves; `qwen27-nvfp4` pinned, for evals |
 | cloud | `anthropic` (built in) | Claude | `/login` in the TUI (OAuth). Not an API key |
 
 ## Standing rules and the side-effect gate
@@ -126,13 +126,14 @@ needs a process outside omp.
 3. **Don't name a provider `ollama`.** An explicit `ollama` entry replaces omp's built-in ollama
    discovery, and in 17.2.9 it silently discovered zero models. The old Windows fix was the
    `OLLAMA_BASE_URL` user env var. `dev-ai` here is an explicit `openai-completions` provider
-   with its one model listed, so it needs neither discovery nor the env var. Verified from Linux,
-   2026-09-30: `omp -p --no-tools --model dev-ai/workhorse:latest` answered in 2.3 s.
-4. **Clients name `workhorse:latest`, never a concrete model** (okf-knowledge
-   `infra/ai-stack.md`). `qwen3.6:35b-a3b` disappeared from dev-ai, which broke both OpenCode's
-   and omp's defaults; the alias prevents a repeat.
-5. **`contextWindow` must match the server.** llama.cpp: `--ctx-size` (131072). dev-ai: the
-   alias's `num_ctx` (131072).
+   with its models listed, so it needs neither discovery nor the env var.
+4. **Clients name `workhorse`, never a concrete model** (okf-knowledge `infra/ai-stack.md`).
+   `qwen3.6:35b-a3b` disappeared from dev-ai, which broke both OpenCode's and omp's defaults;
+   the pointer prevents a repeat. Evals that must not drift name `qwen27-nvfp4` instead. The
+   Ollama on `:11434` is CPU-only since 2026-10-20 and answers `workhorse:latest` without
+   error, slowly and at a 32K window, so a client left there fails quietly.
+5. **`contextWindow` must match the server.** llama.cpp: `--ctx-size` (131072). dev-ai: vLLM's
+   `--max-model-len` (131072).
 6. **Claude Code's auto mode will not launch omp with `--auto-approve`**, even with approval;
    run such commands yourself (`! omp ...` inside Claude Code).
 7. omp's agent tried `python` before `python3` on Ubuntu: `sudo apt install python-is-python3`.
