@@ -59,8 +59,11 @@ providers:
   #   OMLX_API_KEY=... omlx serve --model-dir /Volumes/workspace/models/mlx --host 0.0.0.0 \
   #     --port 8080 --memory-guard-gb 100 --paged-ssd-cache-dir /Volumes/workspace/models/omlx-cache --headless
   # It listens on the LAN, so it requires its API key on every request, loopback included.
-  # The key is in Studio's login Keychain; omp reads it from the OMLX_API_KEY variable:
-  #   export OMLX_API_KEY="$(security find-generic-password -s omlx-api-key -w)"
+  # The key is in Studio's login Keychain (service omlx-api-key). omp runs an apiKey that starts
+  # with "!" as a shell command and sends its output, so no shell has to export the key; without
+  # the "!", omp reads an environment variable of that name and, when it is unset, sends the
+  # name itself, which oMLX answers with 401 "Invalid API key". Quoted: YAML reads a bare "!" as
+  # a tag. OMLX_API_KEY from the environment is the fallback where there is no Keychain.
   # oMLX names each model after its folder, so the ids below are folder names. Studio keeps three
   # builds since the 2026-11-11 cleanup. The default, oQ4e, is pinned in oMLX (is_pinned in
   # ~/.omlx/model_settings.json): it loads at startup and is never evicted, and under memory
@@ -69,7 +72,7 @@ providers:
   # Same port as the llama.cpp entry; each machine only runs one of them.
   omlx:
     baseUrl: http://127.0.0.1:8080/v1
-    apiKey: OMLX_API_KEY
+    apiKey: "!security find-generic-password -s omlx-api-key -w 2>/dev/null || printenv OMLX_API_KEY"
     api: openai-completions
     models:
       - id: Qwen3.8-Flash-Next-oQ4e-mtp
