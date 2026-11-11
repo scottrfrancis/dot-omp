@@ -123,7 +123,12 @@ providers:
         input: [text]
       - id: Qwen3.8-Flash-Next-oQ4e-mtp
         name: Qwen3.8 Flash-Next oQ4e with MTP (oMLX)
-        contextWindow: 131072
+        # Studio's default (machines/studio-mac.conf). Every expert resident and the n-gram table
+        # on SSD (oMLX per-model settings qwen4_ple_ssd_offload: true, moe_expert_offload_enabled:
+        # false). A cached 36-turn session reached 230k tokens at 88.5 GiB and a 230k needle
+        # peaked at 90.2 (2026-11-10/11); a 256k prompt passed oMLX's 97 GiB hard line and the
+        # model was evicted. Several long sessions at once share that headroom.
+        contextWindow: 229376
         maxTokens: 16384
         input: [text]
       # Round 2 (studio-local-ai.md): speculative decoding, and Qwen3.8-27B at two quants.
