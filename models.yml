@@ -54,108 +54,46 @@ providers:
         maxTokens: 16384
         input: [text]
 
-  # Local tier on Studio (Mac Studio M5 Max, 128 GB): oMLX, an MLX server, on 8080.
+  # Local tier on Studio (Mac Studio M5 Max, 128 GB): oMLX, an MLX server, on 8080, started by
+  # /Volumes/workspace/models/engines/omlx-serve.sh:
   #   OMLX_API_KEY=... omlx serve --model-dir /Volumes/workspace/models/mlx --host 0.0.0.0 \
   #     --port 8080 --memory-guard-gb 100 --paged-ssd-cache-dir /Volumes/workspace/models/omlx-cache --headless
   # It listens on the LAN, so it requires its API key on every request, loopback included.
   # The key is in Studio's login Keychain; omp reads it from the OMLX_API_KEY variable:
   #   export OMLX_API_KEY="$(security find-generic-password -s omlx-api-key -w)"
-  # oMLX names each model after its folder, so the ids below are folder names. It serves
-  # several models at once and evicts by LRU. Plan and results: okf-knowledge
-  # infra/runbooks/studio-local-ai.md. Same port as the llama.cpp entry; each machine only
-  # runs one of them.
+  # oMLX names each model after its folder, so the ids below are folder names. Studio keeps three
+  # builds since the 2026-11-11 cleanup. The default, oQ4e, is pinned in oMLX (is_pinned in
+  # ~/.omlx/model_settings.json): it loads at startup and is never evicted, and under memory
+  # pressure new requests wait instead of failing. Pinned, it leaves no room to load either
+  # fallback; unpin it first. Plan and results: okf-knowledge infra/runbooks/studio-local-ai.md.
+  # Same port as the llama.cpp entry; each machine only runs one of them.
   omlx:
     baseUrl: http://127.0.0.1:8080/v1
     apiKey: OMLX_API_KEY
     api: openai-completions
     models:
-      - id: Qwen3.6-35B-A3B-4bit
-        name: Qwen3.6 35B-A3B 4-bit (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: gpt-oss-20b-MXFP4-Q8
-        name: gpt-oss 20B (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: Qwen3.6-35B-A3B-oQ4e-mtp
-        name: Qwen3.6 35B-A3B oQ4e with MTP (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      # Phase 2b and the Phase 3 bake-off (studio-local-ai.md). Listed ahead of their
-      # downloads; a model oMLX has not discovered just fails if chosen.
-      - id: Qwen3.8-27B-MLX-8bit
-        name: Qwen3.8 27B 8-bit, dense (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: Qwen3.5-122B-A10B-4bit
-        name: Qwen3.5 122B-A10B 4-bit (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: gpt-oss-120b-MXFP4-Q8
-        name: gpt-oss 120B (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: Qwen3-Coder-Next-4bit
-        name: Qwen3 Coder Next 4-bit (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-MLX-4bit
-        name: Nemotron 3.5 Super-VL 120B-A12B 4-bit (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: Laguna-S-2.1-NVFP4-mlx
-        name: Laguna S 2.1 NVFP4 (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-      - id: Mistral-Small-4-119B-2603-4bit
-        name: Mistral Small 4 119B 4-bit (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
       - id: Qwen3.8-Flash-Next-oQ4e-mtp
         name: Qwen3.8 Flash-Next oQ4e with MTP (oMLX)
-        contextWindow: 131072
+        # Studio's default (machines/studio-mac.conf). Every expert resident and the n-gram table
+        # on SSD (oMLX per-model settings qwen4_ple_ssd_offload: true, moe_expert_offload_enabled:
+        # false). A cached 36-turn session reached 230k tokens at 88.5 GiB and a 230k needle
+        # peaked at 90.2 (2026-11-10/11); a 256k prompt passed oMLX's 97 GiB hard line and the
+        # model was evicted. Several long sessions at once share that headroom.
+        contextWindow: 229376
         maxTokens: 16384
         input: [text]
-      # Round 2 (studio-local-ai.md): speculative decoding, and Qwen3.8-27B at two quants.
+      # Fallback for the longest context or the least memory (52 GiB loaded).
       - id: Qwen3.8-Flash-Next-oQ2.5e-fp16-mtp
         name: Qwen3.8 Flash-Next oQ2.5e with MTP (oMLX)
-        # 160k: under oMLX's 100 GiB guard a 190k prompt fits and 230k is aborted (2026-11-09).
-        contextWindow: 163840
+        # The model's own limit (max_position_embeddings). It fits under oMLX's 100 GiB guard
+        # only with the n-gram table on SSD (oMLX per-model setting qwen4_ple_ssd_offload): a
+        # 256k prompt peaked at 73 GiB (2026-11-10). With the table resident, 230k is aborted.
+        contextWindow: 262144
         maxTokens: 16384
         input: [text]
-      - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4
-        name: Nemotron 3.5 Super-VL NVFP4 with MTP (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
+      # Fallback when Studio's memory is tight: 37/42 on the suite, 53 GiB peak, half the speed.
       - id: Qwen3.8-27B-oQ8e-mtp
         name: Qwen3.8 27B oQ8e with MTP (oMLX)
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
-
-  # The same oMLX server, with gpt-oss marked as a reasoning model. omp sends reasoning_effort only
-  # for a model marked `reasoning: true`, and then sends its default level, high; oMLX passes it into
-  # gpt-oss's chat template, which otherwise defaults to medium. Kept apart from `omlx` so round 1's
-  # medium-effort results stay comparable (okf-knowledge studio-local-ai.md, round 2).
-  omlx-high:
-    baseUrl: http://127.0.0.1:8080/v1
-    apiKey: OMLX_API_KEY
-    api: openai-completions
-    models:
-      - id: gpt-oss-120b-MXFP4-Q8
-        name: gpt-oss 120B, reasoning high (oMLX)
-        contextWindow: 131072
-        maxTokens: 16384
-        input: [text]
-        reasoning: true
