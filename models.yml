@@ -129,8 +129,10 @@ providers:
       # Round 2 (studio-local-ai.md): speculative decoding, and Qwen3.8-27B at two quants.
       - id: Qwen3.8-Flash-Next-oQ2.5e-fp16-mtp
         name: Qwen3.8 Flash-Next oQ2.5e with MTP (oMLX)
-        # 160k: under oMLX's 100 GiB guard a 190k prompt fits and 230k is aborted (2026-11-09).
-        contextWindow: 163840
+        # The model's own limit (max_position_embeddings). It fits under oMLX's 100 GiB guard
+        # only with the n-gram table on SSD (oMLX per-model setting qwen4_ple_ssd_offload): a
+        # 256k prompt peaked at 73 GiB (2026-11-10). With the table resident, 230k is aborted.
+        contextWindow: 262144
         maxTokens: 16384
         input: [text]
       - id: NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4
