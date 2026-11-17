@@ -100,3 +100,33 @@ providers:
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
+
+  # Studio's oMLX over the LAN, for machines that do not run it (this laptop): the loopback
+  # entry above only works on Studio itself. studio.local is pinned in /etc/hosts here, so it
+  # also resolves over the home OpenVPN (runbook D3). The key is in ~/.config/omlx/api-key
+  # (mode 600), copied from Studio's login Keychain, and exported as OMLX_API_KEY into the
+  # systemd user environment, the same way as VLLM_API_KEY; there is no Keychain on Linux, so
+  # this entry names the variable rather than the `!` keychain command the loopback entry uses.
+  # The server currently serves the three models below; Flash-Next oQ4e with MTP is the pinned
+  # Studio pick since 2026-11-11, oQ2.5e and the 27B oQ8e the fallbacks (okf-knowledge
+  # infra/runbooks/studio-local-ai.md).
+  studio:
+    baseUrl: http://studio.local:8080/v1
+    apiKey: OMLX_API_KEY
+    api: openai-completions
+    models:
+      - id: Qwen3.8-Flash-Next-oQ4e-mtp
+        name: Qwen3.8 Flash-Next oQ4e with MTP (Studio, LAN)
+        contextWindow: 229376     # measured agent-shaped window, okf runbook 2026-11-11
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-Flash-Next-oQ2.5e-fp16-mtp
+        name: Qwen3.8 Flash-Next oQ2.5e with MTP (Studio, LAN)
+        contextWindow: 163840     # measured reach under the 100 GiB guard, okf runbook
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-27B-oQ8e-mtp
+        name: Qwen3.8 27B oQ8e with MTP (Studio, LAN)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
