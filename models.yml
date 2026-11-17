@@ -100,3 +100,32 @@ providers:
         contextWindow: 131072
         maxTokens: 16384
         input: [text]
+
+  # Studio's oMLX over the LAN, for machines that do not run it (BladeRunner14): the loopback
+  # entry above only works on Studio itself. studio.local is pinned in /etc/hosts there, so it
+  # also resolves over the home OpenVPN (runbook D3). Off Studio there is no Keychain item, so
+  # this entry names the OMLX_API_KEY variable: on BladeRunner14 the key is in
+  # ~/.config/omlx/api-key (mode 600), copied from Studio's login Keychain, and exported as
+  # OMLX_API_KEY into the systemd user environment, the same way as VLLM_API_KEY. The models and
+  # windows match the omlx entry; oQ4e is pinned on the server, so the two fallbacks load only
+  # after it is unpinned (okf-knowledge infra/runbooks/studio-local-ai.md).
+  studio:
+    baseUrl: http://studio.local:8080/v1
+    apiKey: OMLX_API_KEY
+    api: openai-completions
+    models:
+      - id: Qwen3.8-Flash-Next-oQ4e-mtp
+        name: Qwen3.8 Flash-Next oQ4e with MTP (Studio, LAN)
+        contextWindow: 229376
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-Flash-Next-oQ2.5e-fp16-mtp
+        name: Qwen3.8 Flash-Next oQ2.5e with MTP (Studio, LAN)
+        contextWindow: 262144
+        maxTokens: 16384
+        input: [text]
+      - id: Qwen3.8-27B-oQ8e-mtp
+        name: Qwen3.8 27B oQ8e with MTP (Studio, LAN)
+        contextWindow: 131072
+        maxTokens: 16384
+        input: [text]
