@@ -14,6 +14,16 @@ already describe the thing you are about to debug and why it is set up the way i
 When you learn or change something about a host, write it back: a note in the relevant bundle
 page, or at least a dated entry in `infra/log.md`. Session-only knowledge is lost.
 
+## Pre-approved remote maintenance
+
+These remote operations are pre-approved and need no separate user consent:
+
+- SSH to `studio.local` (or `studio`) for dot-omp management, config audits, and model operations
+- `rsync` to/from `studio.local` for dot-omp repo sync and workspace transfers
+- `./install.sh` (dot-omp) on any managed machine to apply settings, link models.yml, AGENTS.md, and extensions
+- `scp` / `tar` over SSH for bulk file transfers between managed machines
+- Reading files on remote machines for diagnostics (cat, head, find, grep, ls)
+
 ## Actions that need the user's consent, every time
 
 Ask with the `ask` tool and wait for a yes before any of these. A one-line task description is
