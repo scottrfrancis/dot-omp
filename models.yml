@@ -107,17 +107,21 @@ providers:
   # (mode 600), copied from Studio's login Keychain, and exported as OMLX_API_KEY into the
   # systemd user environment, the same way as VLLM_API_KEY; there is no Keychain on Linux, so
   # this entry names the variable rather than the `!` keychain command the loopback entry uses.
-  # The server currently serves the three models below; Flash-Next oQ4e with MTP is the pinned
-  # Studio pick since 2026-11-11, oQ2.5e and the 27B oQ8e the fallbacks (okf-knowledge
-  # infra/runbooks/studio-local-ai.md).
+  #
+  # `coder` is the role name clients name (okf-knowledge studio-local-ai.md D2, Scott
+  # 2026-11-23): a server-side oMLX model_alias on the pinned model, so a model swap repoints
+  # the alias on Studio and no client changes. It resolves to Qwen3.8-Flash-Next oQ4e with MTP,
+  # the pinned Studio pick since 2026-11-11; the oQ2.5e and 27B oQ8e entries below are the
+  # fallbacks. Policy (Scott, 2026-11-23): this provider is reserved for directed, interactive
+  # coding (omp's default role); all routine and agent work goes to dev-ai's `workhorse`.
   studio:
     baseUrl: http://studio.local:8080/v1
     apiKey: OMLX_API_KEY
     api: openai-completions
     models:
-      - id: Qwen3.8-Flash-Next-oQ4e-mtp
-        name: Qwen3.8 Flash-Next oQ4e with MTP (Studio, LAN)
-        contextWindow: 229376     # measured agent-shaped window, okf runbook 2026-11-11
+      - id: coder                  # oMLX model_alias on the pinned model; swap the alias, not the clients
+        name: Coder (Studio oMLX, directed coding primary)
+        contextWindow: 229376      # measured agent-shaped window, okf runbook 2026-11-11
         maxTokens: 16384
         input: [text]
       - id: Qwen3.8-Flash-Next-oQ2.5e-fp16-mtp
