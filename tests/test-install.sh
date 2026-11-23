@@ -24,7 +24,7 @@ linked_to() { [ -L "$1" ] && [ "$(readlink -f "$1")" = "$(readlink -f "$2")" ]; 
 
 echo "# fresh agent dir: links models.yml, AGENTS.md and the side-effect gate, applies settings"
 A="$T/agent1"; : > "$LOG"
-OMP_AGENT_DIR="$A" OMP_LOCAL_BIN="$T/bin" "$REPO/install.sh" --machine bladerunner14-linux >/dev/null 2>&1
+OMP_AGENT_DIR="$A" OMP_LOCAL_BIN="$T/bin" "$REPO/install.sh" --machine laptop-linux >/dev/null 2>&1
 check "links models.yml"                 linked_to "$A/models.yml" "$REPO/models.yml"
 check "links AGENTS.md"                  linked_to "$A/AGENTS.md" "$REPO/agent/AGENTS.md"
 check "links the side-effect gate"       linked_to "$A/extensions/side-effect-gate.ts" "$REPO/extensions/side-effect-gate.ts"
@@ -34,13 +34,13 @@ check "applies the machine file"         logged "omp config set modelRoles"
 
 echo "# an existing real AGENTS.md is backed up, not clobbered"
 A="$T/agent2"; mkdir -p "$A"; echo "mine" > "$A/AGENTS.md"; : > "$LOG"
-OMP_AGENT_DIR="$A" OMP_LOCAL_BIN="$T/bin" "$REPO/install.sh" --machine bladerunner14-linux >/dev/null 2>&1
+OMP_AGENT_DIR="$A" OMP_LOCAL_BIN="$T/bin" "$REPO/install.sh" --machine laptop-linux >/dev/null 2>&1
 check "replaces with a link"             linked_to "$A/AGENTS.md" "$REPO/agent/AGENTS.md"
 check "backup holds the old text"        bash -c "cat '$A'/AGENTS.md.bak.* | grep -qx mine"
 
 echo "# dry run changes nothing"
 A="$T/agent3"; : > "$LOG"
-OMP_AGENT_DIR="$A" OMP_LOCAL_BIN="$T/bin" "$REPO/install.sh" --machine bladerunner14-linux --dry-run >/dev/null 2>&1
+OMP_AGENT_DIR="$A" OMP_LOCAL_BIN="$T/bin" "$REPO/install.sh" --machine laptop-linux --dry-run >/dev/null 2>&1
 check "creates no agent dir"             test ! -e "$A"
 check "calls omp config set for nothing" notlogged "omp config set"
 

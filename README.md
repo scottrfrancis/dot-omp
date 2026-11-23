@@ -6,7 +6,7 @@ shared, machine-agnostic config lives in the repo, and each machine's choices st
 per-machine.
 
 omp is replacing OpenCode. Everything here was learned the hard way on the Windows box
-(2026-08) and on the BladeRunner14 Linux install (2026-09); see "Gotchas".
+(2026-08) and on the Linux laptop install (2026-09); see "Gotchas".
 
 ## Layout
 
@@ -43,9 +43,12 @@ Windows, from **pwsh 7** (Windows PowerShell 5.1 strips the quotes out of the `m
 on its way to `omp.exe`): `pwsh -File .\install.ps1 -DryRun`, then `pwsh -File .\install.ps1`
 (copies `models.yml`; `-Link` needs Developer Mode).
 
-The machine file is picked as `<short hostname>-<os>`, lowercased (`bladerunner14-linux`,
-`bladerunner14-windows`). Override with `--machine NAME` or `-Machine NAME`. A new machine starts
-by copying the closest file in `machines/`.
+The machine file is picked as `<short hostname>-<os>`, lowercased. This repo is public, so the
+fleet convention is **role names passed explicitly**: `--machine laptop-linux`,
+`laptop-windows`, `workstation-mac`, `managed-mac` (Windows: `-Machine`). No host identity
+ever lands in the repo; the hostname-to-name mapping lives in the private ops KB
+(okf-knowledge `infra/coding.md`). A new machine starts by copying the closest file in
+`machines/`.
 
 ## Tiers
 
@@ -58,7 +61,7 @@ by copying the closest file in `machines/`.
 
 ## Standing rules and the side-effect gate
 
-On 2026-11-08 an omp session on BladeRunner14, pointed at dev-ai and asked to fix a printer,
+On 2026-11-08 an omp session on the Linux laptop, pointed at dev-ai and asked to fix a printer,
 ran for two hours in the default `yolo` approval mode with no rules file loaded (it started in
 `/tmp`, and there was no user-level `AGENTS.md`). It found the real bug by reading CUPS source,
 then submitted nine print jobs as diagnostics, changed the queue's device URI without asking
@@ -151,7 +154,7 @@ needs a process outside omp.
     `vllm:prefix_cache_hits_total` over `vllm:prefix_cache_queries_total`) showed a 91.5 % hit
     rate on 2026-11-08. Read omp's zero as a reporting gap, not as re-prefilling 77 K tokens a
     call.
-12. **No JS runtime on BladeRunner14 outside omp's bundled Bun**, so the extension has no unit
+12. **No JS runtime on the Linux laptop outside omp's bundled Bun**, so the extension has no unit
     tests; `tests/test-install.sh` checks the wiring and the live check above is the functional
     test.
 
