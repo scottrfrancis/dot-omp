@@ -34,6 +34,10 @@ check "allows && chains per segment"     logged "omp config set bash.allowCompou
 check "makes ~/workspace a write root"   logged "omp config set workspace.additionalDirectories"
 check "saves compaction handoffs to disk" logged "omp config set compaction.handoffSaveToDisk true"
 check "applies the machine file"         logged "omp config set modelRoles"
+check "rulebook allows read-only search" logged '"match":"grep *"'
+check "rulebook allows mac inspection"   logged '"match":"plutil -p*"'
+check "rulebook guards find -delete"     logged '"match":"find*-delete*"'
+check "rulebook guards find -exec"       logged '"match":"find* -exec *"'
 
 echo "# an existing real AGENTS.md is backed up, not clobbered"
 A="$T/agent2"; mkdir -p "$A"; echo "mine" > "$A/AGENTS.md"; : > "$LOG"
@@ -52,14 +56,14 @@ check "gate has a default export"        grep -q '^export default' "$REPO/extens
 check "gate hooks tool_call"             grep -q '"tool_call"' "$REPO/extensions/side-effect-gate.ts"
 check "AGENTS.md names the print rule"   grep -qi 'print job' "$REPO/agent/AGENTS.md"
 
+echo "# gate matching: one case table, whichever runtime this box has"
+export GATE_TS="$REPO/extensions/side-effect-gate.ts"
 if command -v bun >/dev/null 2>&1; then
-  echo "# gate matching (bun)"
-  export GATE_TS="$REPO/extensions/side-effect-gate.ts"
-  check "remote sudo is caught"     bun -e 'const {match}=await import(process.env.GATE_TS); if(!match("ssh mini sudo reboot")) process.exit(1)'
-  check "remote systemctl caught"   bun -e 'const {match}=await import(process.env.GATE_TS); if(!match("ssh studio systemctl restart cups")) process.exit(1)'
-  check "user svc passes freely"    bun -e 'const {match}=await import(process.env.GATE_TS); if(match("ssh mini systemctl --user restart kb")) process.exit(1)'
-  check "plain ssh passes freely"   bun -e 'const {match}=await import(process.env.GATE_TS); if(match("ssh mini git status && git log -1")) process.exit(1)'
-  check "local sudo still caught"   bun -e 'const {match}=await import(process.env.GATE_TS); if(!match("sudo apt install wl-clipboard")) process.exit(1)'
+  check "gate cases (bun)"  bun "$REPO/tests/gate-runner.mjs"
+elif node --experimental-strip-types -e 'import("node:util")' >/dev/null 2>&1; then
+  check "gate cases (node)" node --experimental-strip-types "$REPO/tests/gate-runner.mjs"
+else
+  echo "skip gate matching (needs bun or node >= 22.6 to import the TypeScript gate)"
 fi
 
 echo; echo "$pass passed, $fail failed"

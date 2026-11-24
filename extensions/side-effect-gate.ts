@@ -23,12 +23,13 @@ export const GATES: Verdict[] = [
 	{ label: "submit a print job", pattern: /^\s*(sudo\s+)?(lp|lpr)(\s|$)/ },
 	{ label: "change a print queue", pattern: /^\s*(sudo\s+)?(lpadmin|cupsenable|cupsdisable|cupsaccept|cupsreject)(\s|$)/ },
 	{ label: "control a system service", pattern: /^\s*(sudo\s+)?systemctl\s+(?!--user\b)(?!status|show|list|is-|cat)\S/ },
-	{ label: "install or remove packages", pattern: /^\s*(sudo\s+)?(apt|apt-get|dpkg|snap|flatpak|pip3?|npm|cargo)\s+(install|remove|purge|uninstall|autoremove|-i)/ },
+	{ label: "install or remove packages", pattern: /^\s*(sudo\s+)?(apt|apt-get|dnf|yum|dpkg|snap|flatpak|brew|port|pipx|pip3?|npm|pnpm|yarn|uv|gem|cargo|go)\s+(pip\s+|tool\s+)?(install|remove|uninstall|purge|autoremove|reinstall|upgrade|-i)\b/ },
+	{ label: "control a system service", pattern: /^\s*(sudo\s+)?launchctl\s+(load|unload|bootstrap|bootout|kickstart|kill|remove)\b/ },
 	{ label: "write as root", pattern: /^\s*sudo\s+(?!-n\s+true)(?!(cat|ls|grep|head|tail|stat|find|journalctl|lpstat|systemctl\s+(status|show|list|is-|cat)|cupsfilter|ipptool|strace|ss|lsof|dmesg)\b)\S/ },
 	{
 		label: "run a privileged, service, package or print command on a remote host",
 		pattern:
-			/^\s*(ssh|scp|rsync)\s+.*\b(sudo|reboot\b|shutdown\b|mkfs|lpadmin|cupsenable|cupsdisable|lp|lpr|apt|apt-get|dpkg|dnf|yum|zypper|pacman|systemctl\s+(?!--user\b)(?!status|show|list|is-|cat)|launchctl\s+(load|unload|bootstrap|bootout|kickstart))/,
+			/^\s*(ssh|scp|rsync)\s+.*\b(sudo|reboot\b|shutdown\b|mkfs|lpadmin|cupsenable|cupsdisable|lp|lpr|apt|apt-get|dpkg|dnf|yum|zypper|pacman|brew|pipx|uv\s+pip|gem|cargo|systemctl\s+(?!--user\b)(?!status|show|list|is-|cat)|launchctl\s+(load|unload|bootstrap|bootout|kickstart))/,
 	},
 ];
 

@@ -78,17 +78,26 @@ the next session and that outcome.
    *every* bash command and fleet ops became one prompt per tool call (2026-11-23 setup
    session). `bash.patterns` is an ordered list of `{match, approval}` globs; first match
    wins; `prompt`/`deny` rules are checked per segment so they outrank an `allow` inside a
-   compound. Allow: read-only utilities, git (except history-destroying forms, which
-   prompt), LAN ops (`ssh`/`scp`/`rsync`/`curl`, but `curl | sh` prompts), the omp/keychain/
-   klipper CLIs, and this repo's installer. Everything unmatched still lands on the normal
-   prompt. `bash.allowCompoundCommands true` judges literal `&&` chains per segment, and
+   compound. Allow: read-only utilities (`grep`/`rg`/`fd`/`find`, whose destructive forms
+   `-delete`/`-exec`/`-ok` carry prompt rules of their own), macOS inspection verbs
+   (`plutil -p`, `diskutil list`, `system_profiler`, `scutil --get`, `tmutil
+   listlocalsnapshots`, `brew list|info`, `launchctl get|list|print`), git (except
+   history-destroying forms, which prompt), LAN ops (`ssh`/`scp`/`rsync`/`curl`, but
+   `curl | sh` prompts), the omp/keychain/klipper CLIs, and this repo's installer.
+   Interpreters and exec wrappers (`python3`, `node`, `zsh -c`, `xargs`, `timeout`,
+   `env VAR=1`) are deliberately absent: allowing any of them is a bypass lane around the
+   rest of the list. Everything unmatched still lands on the normal prompt.
+   `bash.allowCompoundCommands true` judges literal `&&` chains per segment, and
    `workspace.additionalDirectories ["~/workspace"]` makes the fleet's repos workspace-write
    so edits there stop prompting; dotfiles in `$HOME` still do. Verified in print mode:
    `uname -a` ran unprompted, `rm -f` was refused for want of a rule.
 3. **`extensions/side-effect-gate.ts`**, a `tool_call` hook. It inspects each `bash` command
    segment for the verbs that cost the most in that session (`lp`/`lpr`, `lpadmin` and friends,
-   `systemctl` on system units, package installs and removals, `sudo` with anything but a
-   read-only command) and asks once per command. Since `ssh *` is now auto-approved, the gate
+   `systemctl` on system units, `launchctl load|unload|bootstrap|bootout|kickstart|kill|remove`
+   (the macOS half of the same rule), package installs and removals across both families
+   (`apt`/`dnf`/`yum`/`dpkg`/`snap`/`flatpak` and `brew`/`port`/`pipx`/`pip`/`npm`/`pnpm`/`yarn`/
+   `uv`/`gem`/`cargo`/`go`) and `sudo` with anything but a read-only command) and asks once per
+   command. Since `ssh *` is now auto-approved, the gate
    also inspects ssh/scp/rsync payloads: `ssh mini sudo reboot` gates, `ssh mini git status`
    does not. Without a UI it blocks and tells the model to use the `ask` tool. It fires before
    approval, so it holds in `yolo` too. Verified against dev-ai in print mode: `lp -d nowhere
