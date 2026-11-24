@@ -83,10 +83,13 @@ the next session and that outcome.
    (`plutil -p`, `diskutil list`, `system_profiler`, `scutil --get`, `tmutil
    listlocalsnapshots`, `brew list|info`, `launchctl get|list|print`), git (except
    history-destroying forms, which prompt), LAN ops (`ssh`/`scp`/`rsync`/`curl`, but
-   `curl | sh` prompts), the omp/keychain/klipper CLIs, and this repo's installer.
-   Interpreters and exec wrappers (`python3`, `node`, `zsh -c`, `xargs`, `timeout`,
-   `env VAR=1`) are deliberately absent: allowing any of them is a bypass lane around the
-   rest of the list. Everything unmatched still lands on the normal prompt.
+   `curl | sh` prompts), the omp/keychain/klipper CLIs, `cd` (harmless on its own; the rest of
+   a `cd x && y` chain is still judged on its own rules), and this repo's installer.
+   `python3`/`python` are allowed, with `python*os.system*`, `python*os.popen*`,
+   `python*subprocess*` and `python*shutil.rmtree*` kept as prompt rules so the allow cannot
+   shell out or delete a tree unnoticed. `node`, `zsh -c`, `xargs`, `timeout` and `env VAR=1`
+   stay absent: allowing any of them is a bypass lane around the rest of the list. Everything
+   unmatched still lands on the normal prompt.
    `bash.allowCompoundCommands true` judges literal `&&` chains per segment, and
    `workspace.additionalDirectories ["~/workspace"]` makes the fleet's repos workspace-write
    so edits there stop prompting; dotfiles in `$HOME` still do. Verified in print mode:

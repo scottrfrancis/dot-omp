@@ -38,6 +38,7 @@ check "rulebook allows read-only search" logged '"match":"grep *"'
 check "rulebook allows mac inspection"   logged '"match":"plutil -p*"'
 check "rulebook guards find -delete"     logged '"match":"find*-delete*"'
 check "rulebook guards find -exec"       logged '"match":"find* -exec *"'
+check "python allow keeps its guards"    logged '"match":"python*os.system*"'
 
 echo "# an existing real AGENTS.md is backed up, not clobbered"
 A="$T/agent2"; mkdir -p "$A"; echo "mine" > "$A/AGENTS.md"; : > "$LOG"
