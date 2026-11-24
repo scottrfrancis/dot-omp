@@ -66,21 +66,34 @@ ran for two hours in the default `yolo` approval mode with no rules file loaded 
 `/tmp`, and there was no user-level `AGENTS.md`). It found the real bug by reading CUPS source,
 then submitted nine print jobs as diagnostics, changed the queue's device URI without asking
 and ran `sudo` 245 times, none of it prompted. About fifty pages of garbage came out of the
-printer. The model's reasoning was fine; the harness had no gate. Three things changed here.
+printer. The model's reasoning was fine; the harness had no gate. Four things stand between
+the next session and that outcome.
 
 1. **`tools.approvalMode write`** in `settings.conf`. Reads run free; writes, edits and shell
    commands ask. In print mode (`omp -p`) a command that needs approval is refused with a
    message, so scripted runs such as the smoke test pass `--auto-approve` or
    `--approval-mode yolo` explicitly, and so should a session that is editing code inside a
    git repo where every change is reversible.
-2. **`extensions/side-effect-gate.ts`**, a `tool_call` hook. It inspects each `bash` command
+2. **The approval rulebook**, also `settings.conf`, because plain `write` mode asks before
+   *every* bash command and fleet ops became one prompt per tool call (2026-11-23 setup
+   session). `bash.patterns` is an ordered list of `{match, approval}` globs; first match
+   wins; `prompt`/`deny` rules are checked per segment so they outrank an `allow` inside a
+   compound. Allow: read-only utilities, git (except history-destroying forms, which
+   prompt), LAN ops (`ssh`/`scp`/`rsync`/`curl`, but `curl | sh` prompts), the omp/keychain/
+   klipper CLIs, and this repo's installer. Everything unmatched still lands on the normal
+   prompt. `bash.allowCompoundCommands true` judges literal `&&` chains per segment, and
+   `workspace.additionalDirectories ["~/workspace"]` makes the fleet's repos workspace-write
+   so edits there stop prompting; dotfiles in `$HOME` still do. Verified in print mode:
+   `uname -a` ran unprompted, `rm -f` was refused for want of a rule.
+3. **`extensions/side-effect-gate.ts`**, a `tool_call` hook. It inspects each `bash` command
    segment for the verbs that cost the most in that session (`lp`/`lpr`, `lpadmin` and friends,
    `systemctl` on system units, package installs and removals, `sudo` with anything but a
-   read-only command) and asks once per command. Without a UI it blocks and tells the model to
-   use the `ask` tool. It fires before approval, so it holds in `yolo` too. Verified against
-   dev-ai in print mode: `lp -d nowhere /etc/hostname` came back blocked with the reason text,
-   `ls /etc/cups` ran.
-3. **`agent/AGENTS.md`**, linked to `~/.omp/agent/AGENTS.md`, so it reaches sessions started
+   read-only command) and asks once per command. Since `ssh *` is now auto-approved, the gate
+   also inspects ssh/scp/rsync payloads: `ssh mini sudo reboot` gates, `ssh mini git status`
+   does not. Without a UI it blocks and tells the model to use the `ask` tool. It fires before
+   approval, so it holds in `yolo` too. Verified against dev-ai in print mode: `lp -d nowhere
+   /etc/hostname` came back blocked with the reason text, `ls /etc/cups` ran.
+4. **`agent/AGENTS.md`**, linked to `~/.omp/agent/AGENTS.md`, so it reaches sessions started
    outside any project. It carries the consent rules the gate enforces, the consult-before-acting
    rule from the ops knowledge base, and three habits for investigations: check for the standard
    tool before writing a client (that session spent fifteen minutes on a hand-written IPP encoder

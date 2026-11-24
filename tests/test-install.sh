@@ -29,6 +29,9 @@ check "links models.yml"                 linked_to "$A/models.yml" "$REPO/models
 check "links AGENTS.md"                  linked_to "$A/AGENTS.md" "$REPO/agent/AGENTS.md"
 check "links the side-effect gate"       linked_to "$A/extensions/side-effect-gate.ts" "$REPO/extensions/side-effect-gate.ts"
 check "sets approval mode to write"      logged "omp config set tools.approvalMode write"
+check "ships a bash rulebook"            logged "omp config set bash.patterns"
+check "allows && chains per segment"     logged "omp config set bash.allowCompoundCommands true"
+check "makes ~/workspace a write root"   logged "omp config set workspace.additionalDirectories"
 check "saves compaction handoffs to disk" logged "omp config set compaction.handoffSaveToDisk true"
 check "applies the machine file"         logged "omp config set modelRoles"
 
@@ -48,6 +51,16 @@ echo "# the gate source is well formed enough to be an extension"
 check "gate has a default export"        grep -q '^export default' "$REPO/extensions/side-effect-gate.ts"
 check "gate hooks tool_call"             grep -q '"tool_call"' "$REPO/extensions/side-effect-gate.ts"
 check "AGENTS.md names the print rule"   grep -qi 'print job' "$REPO/agent/AGENTS.md"
+
+if command -v bun >/dev/null 2>&1; then
+  echo "# gate matching (bun)"
+  export GATE_TS="$REPO/extensions/side-effect-gate.ts"
+  check "remote sudo is caught"     bun -e 'const {match}=await import(process.env.GATE_TS); if(!match("ssh mini sudo reboot")) process.exit(1)'
+  check "remote systemctl caught"   bun -e 'const {match}=await import(process.env.GATE_TS); if(!match("ssh studio systemctl restart cups")) process.exit(1)'
+  check "user svc passes freely"    bun -e 'const {match}=await import(process.env.GATE_TS); if(match("ssh mini systemctl --user restart kb")) process.exit(1)'
+  check "plain ssh passes freely"   bun -e 'const {match}=await import(process.env.GATE_TS); if(match("ssh mini git status && git log -1")) process.exit(1)'
+  check "local sudo still caught"   bun -e 'const {match}=await import(process.env.GATE_TS); if(!match("sudo apt install wl-clipboard")) process.exit(1)'
+fi
 
 echo; echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

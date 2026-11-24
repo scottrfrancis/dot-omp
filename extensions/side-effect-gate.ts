@@ -6,8 +6,14 @@
 // tells the model to ask the user with the `ask` tool instead.
 //
 // Why: a 2026-11-08 printer-debugging session on BladeRunner14 ran in yolo mode and sent
-// nine print jobs, changed a queue URI and ran sudo 245 times without a prompt. The
+// nine print jobs, changed a queue URI and ran sudo 245 times without prompting. The
 // user's standing rules live in agent/AGENTS.md; this is the mechanical half.
+//
+// Companion: settings.conf's bash.patterns auto-approves ordinary commands (git, ssh, curl,
+// read-only utilities) under approvalMode `write`. The other GATES anchor at a segment's
+// start, so they would miss `ssh mini sudo reboot`; the last entry inspects ssh/scp/rsync
+// payloads for verbs that would gate a command locally. If you allow more transports in
+// bash.patterns, extend this regex with them.
 
 type Verdict = { label: string; pattern: RegExp };
 
@@ -19,6 +25,11 @@ export const GATES: Verdict[] = [
 	{ label: "control a system service", pattern: /^\s*(sudo\s+)?systemctl\s+(?!--user\b)(?!status|show|list|is-|cat)\S/ },
 	{ label: "install or remove packages", pattern: /^\s*(sudo\s+)?(apt|apt-get|dpkg|snap|flatpak|pip3?|npm|cargo)\s+(install|remove|purge|uninstall|autoremove|-i)/ },
 	{ label: "write as root", pattern: /^\s*sudo\s+(?!-n\s+true)(?!(cat|ls|grep|head|tail|stat|find|journalctl|lpstat|systemctl\s+(status|show|list|is-|cat)|cupsfilter|ipptool|strace|ss|lsof|dmesg)\b)\S/ },
+	{
+		label: "run a privileged, service, package or print command on a remote host",
+		pattern:
+			/^\s*(ssh|scp|rsync)\s+.*\b(sudo|reboot\b|shutdown\b|mkfs|lpadmin|cupsenable|cupsdisable|lp|lpr|apt|apt-get|dpkg|dnf|yum|zypper|pacman|systemctl\s+(?!--user\b)(?!status|show|list|is-|cat)|launchctl\s+(load|unload|bootstrap|bootout|kickstart))/,
+	},
 ];
 
 export function splitSegments(command: string): string[] {
